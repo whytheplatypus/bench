@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -14,15 +15,20 @@ import (
 )
 
 var (
-	certFile = flag.String("cert", "", "A PEM eoncoded certificate file.")
-	keyFile  = flag.String("key", "", "A PEM encoded private key file.")
-	testFile = flag.String("tests", "./tests.json", "A file listing the endpoints to benchmark")
-	tmpl     = flag.String("template", "", "A template file that will be used to render results")
+	flags    = flag.NewFlagSet("bench", flag.ExitOnError)
+	certFile = flags.String("cert", "", "A PEM eoncoded certificate file.")
+	keyFile  = flags.String("key", "", "A PEM encoded private key file.")
+	testFile = flags.String("tests", "./tests.json", "A file listing the endpoints to benchmark")
+	tmpl     = flags.String("template", "", "A template file that will be used to render results")
 	client   *http.Client
 )
 
+var (
+	ErrNoTestFile = errors.New("Bench couldn't find the file describing the endpoints you wanted to interact with.")
+)
+
 func main() {
-	flag.Parse()
+	flags.Parse(os.Args[1:])
 
 	client = http.DefaultClient
 	if *certFile != "" && *keyFile != "" {
@@ -31,6 +37,9 @@ func main() {
 
 	tests, err := loadTests(*testFile)
 	if err != nil {
+		if os.IsNotExist(err) {
+			err = fmt.Errorf("%s: %s", err, ErrNoTestFile)
+		}
 		log.Fatal(err)
 	}
 
