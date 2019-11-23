@@ -15,7 +15,6 @@ import (
 var (
 	certFile = flag.String("cert", "", "A PEM eoncoded certificate file.")
 	keyFile  = flag.String("key", "", "A PEM encoded private key file.")
-	//caFile   = flag.String("CA", "someCertCAFile", "A PEM eoncoded CA's certificate file.")
 	testFile = flag.String("tests", "./tests.json", "A file listing the endpoints to benchmark")
 	client   *http.Client
 )
@@ -36,14 +35,14 @@ func main() {
 	results := map[string]testing.BenchmarkResult{}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
-	for t, url := range tests {
-		results[t] = testing.Benchmark(benchmarkUrlTest(url))
+	for t, req := range tests {
+		results[t] = testing.Benchmark(benchmarkUrlTest(req))
 		fmt.Fprintf(w, "%s\t%d\t%s\n", t, results[t].N, results[t].T)
 	}
 	w.Flush()
 }
 
-func loadTests(testFile string) (tests map[string]string, err error) {
+func loadTests(testFile string) (tests map[string]*http.Request, err error) {
 	f, err := os.Open(testFile)
 	if err != nil {
 		return tests, err
@@ -55,15 +54,15 @@ func loadTests(testFile string) (tests map[string]string, err error) {
 	return tests, err
 }
 
-func benchmarkUrlTest(url string) func(*testing.B) {
+func benchmarkUrlTest(req *http.Request) func(*testing.B) {
 	return func(b *testing.B) {
-		benchmarkUrl(url, b)
+		benchmarkUrl(req, b)
 	}
 }
 
-func benchmarkUrl(url string, b *testing.B) {
+func benchmarkUrl(req *http.Request, b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		resp, err := client.Get(url)
+		resp, err := client.Do(req)
 		if err != nil {
 			log.Println(err)
 			continue
