@@ -10,12 +10,14 @@ import (
 	"os"
 	"testing"
 	"text/tabwriter"
+	"text/template"
 )
 
 var (
 	certFile = flag.String("cert", "", "A PEM eoncoded certificate file.")
 	keyFile  = flag.String("key", "", "A PEM encoded private key file.")
 	testFile = flag.String("tests", "./tests.json", "A file listing the endpoints to benchmark")
+	tmpl     = flag.String("template", "", "A template file that will be used to render results")
 	client   *http.Client
 )
 
@@ -34,12 +36,17 @@ func main() {
 
 	results := map[string]testing.BenchmarkResult{}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
+	w := tabwriter.NewWriter(os.Stderr, 0, 0, 1, ' ', 0)
 	for t, req := range tests {
 		results[t] = testing.Benchmark(benchmarkUrlTest(req))
 		fmt.Fprintf(w, "%s\t%d\t%s\n", t, results[t].N, results[t].T)
 	}
 	w.Flush()
+
+	if *tmpl != "" {
+		t := template.Must(template.ParseFiles(*tmpl))
+		t.Execute(os.Stdout, results)
+	}
 }
 
 func loadTests(testFile string) (tests map[string]*http.Request, err error) {
