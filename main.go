@@ -48,7 +48,7 @@ func main() {
 	w := tabwriter.NewWriter(os.Stderr, 0, 0, 1, ' ', 0)
 	for t, req := range tests {
 		results[t] = testing.Benchmark(benchmarkUrlTest(req))
-		fmt.Fprintf(w, "%s\t%d\t%s\n", t, results[t].N, results[t].T)
+		fmt.Fprintf(w, "%s\t%d\t%f (ns/op)\n", t, results[t].N, float64(results[t].T.Nanoseconds())/float64(results[t].N))
 	}
 	w.Flush()
 
